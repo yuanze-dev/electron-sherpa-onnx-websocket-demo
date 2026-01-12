@@ -7,13 +7,22 @@ if (started) {
   app.quit();
 }
 
+let mainWindow: BrowserWindow | null = null;
+
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    transparent: true,
+    backgroundColor: "#00000000",
+    opacity: 0.9,
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      // 开发环境禁用安全策略以支持跨域iframe
+      webSecurity: process.env.NODE_ENV !== "development",
+      allowRunningInsecureContent: process.env.NODE_ENV === "development",
     },
   });
 
@@ -28,6 +37,10 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 };
 
 app.whenReady().then(async () => {
@@ -83,4 +96,19 @@ ipcMain.handle("restart-server", async () => {
   sherpaServer.stop();
   await new Promise((resolve) => setTimeout(resolve, 1000));
   return await sherpaServer.start(6006);
+});
+
+ipcMain.handle("get-window-opacity", () => {
+  const win = mainWindow ?? BrowserWindow.getAllWindows()[0];
+  return win?.getOpacity() ?? 1;
+});
+
+ipcMain.handle("set-window-opacity", (_event, value: number) => {
+  const win = mainWindow ?? BrowserWindow.getAllWindows()[0];
+  if (!win || typeof value !== "number" || Number.isNaN(value)) {
+    return win?.getOpacity() ?? 1;
+  }
+  const clamped = Math.min(1, Math.max(0, value));
+  win.setOpacity(clamped);
+  return clamped;
 });

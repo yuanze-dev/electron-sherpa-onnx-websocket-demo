@@ -11,6 +11,12 @@ interface OnnxServerState {
   isConnected: boolean;
   isRecognizing: boolean;
   lastResult: string;
+  asrEvent: {
+    text: string;
+    tokens: string[];
+    timestamps: number[];
+    type: "partial" | "final";
+  } | null;
   error: string | null;
   microphones: Array<{ deviceId: string; label: string }>;
   selectedDeviceId: string | null;
@@ -24,6 +30,7 @@ export const useOnnxServer = ({
     isConnected: false,
     isRecognizing: false,
     lastResult: "",
+    asrEvent: null,
     error: null,
     microphones: [],
     selectedDeviceId: null,
@@ -121,11 +128,54 @@ export const useOnnxServer = ({
 
       websocket.onmessage = (event) => {
         const message = event.data;
+
         if (message !== "Done!") {
-          setState((prev) => ({
-            ...prev,
-            lastResult: message,
-          }));
+          try {
+            const data = JSON.parse(message);
+            // 假设服务器返回格式包含 text, tokens, timestamps
+            // 如果格式不符，这里需要映射
+            const asrEvent = {
+              text: data.text || "",
+              tokens: data.tokens || (data.text ? Array.from(data.text) : []),
+              timestamps: data.timestamps || (data.text ? Array.from(data.text).map((_, i) => i * 0.1) : []),
+              type: data.type || "partial",
+            };
+
+            setState((prev) => ({
+              ...prev,
+              lastResult: data.text || message,
+              asrEvent: asrEvent,
+            }));
+
+            console.log("[ONNX] Recognition Result ->", {
+              text: asrEvent.text,
+              type: asrEvent.type,
+              tokens: asrEvent.tokens.length,
+              hasTimestamps: asrEvent.timestamps.length > 0
+            });
+
+          } catch (e) {
+            // If not JSON, treat as plain text
+            const asrEvent = {
+              text: message,
+              tokens: Array.from(message),
+              timestamps: Array.from(message).map((_, i) => i * 0.1),
+              type: "partial",
+            };
+
+            setState((prev) => ({
+              ...prev,
+              lastResult: message,
+              asrEvent: asrEvent,
+            }));
+
+            console.log("[ONNX] Recognition Result (plain text) ->", {
+              text: message,
+              type: "partial"
+            });
+          }
+        } else {
+          console.log("[ONNX] ✅ Recognition complete");
         }
       };
 
@@ -215,12 +265,12 @@ export const useOnnxServer = ({
 
         // Listen for audio data from the worklet
         workletNode.port.onmessage = (event) => {
-          if (
-            event.data.type === "audioData" &&
-            websocketRef.current?.readyState === WebSocket.OPEN
-          ) {
+          if (event.data.type === "audioData" &&
+              websocketRef.current?.readyState === WebSocket.OPEN) {
             const audioData = event.data.data;
             websocketRef.current.send(audioData.buffer);
+            // Optional: Very verbose, uncomment if needed
+            // console.log("[ONNX] ⚡ Audio data sent to server");
           }
         };
 
