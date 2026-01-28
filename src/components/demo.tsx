@@ -177,6 +177,7 @@ export const DemoPage: React.FC = () => {
                   },
                 },
               },
+              debug: true,
             };
 
             safeCall("pacificEditor.init", editor.init, initConfig);
