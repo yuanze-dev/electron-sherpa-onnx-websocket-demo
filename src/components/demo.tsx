@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useOnnxServer } from "../hook/useOnnxServer";
+import React, {useEffect, useMemo, useRef, useState} from "react";
+import {useOnnxServer} from "../hook/useOnnxServer";
 
 type PacificPlaybackState = "idle" | "countdown" | "playing" | "paused";
 
@@ -19,6 +19,7 @@ type PacificPreviewInstance = {
   stop?: () => unknown;
   exit?: () => unknown;
   patchConfig?: (patch: unknown) => unknown;
+  setConfig?: (config: unknown) => boolean;
   onStateChange?: (cb: (state: PacificPreviewState) => void) => unknown;
   onError?: (cb: (err: unknown) => void) => unknown;
   feedASR?: (asrEvent: unknown) => unknown;
@@ -35,7 +36,7 @@ type PacificEditorGlobal = {
 
 export const DemoPage: React.FC = () => {
   const isMac = navigator.platform.toLowerCase().includes("mac");
-  const noDragStyle = { WebkitAppRegion: "no-drag" as const };
+  const noDragStyle = {WebkitAppRegion: "no-drag" as const};
   const {
     isConnected,
     isRecognizing,
@@ -129,38 +130,7 @@ export const DemoPage: React.FC = () => {
               note: {
                 id: 289852,
                 title: "ASR文本对齐默认文稿",
-                content: `<!doctype html>
-                  <html lang="zh-CN">
-                  <head>
-                    <meta charset="utf-8" />
-                    <meta name="viewport" content="width=device-width,initial-scale=1" />
-                    <title>ASR文本对齐默认文稿</title>
-                  </head>
-                  <body>
-                    <h1>ASR文本对齐默认文稿</h1>
-                    <p>核心挑战是在全文中找到 ASR 识别出的文本片段在原文中的位置。为此可以采用模糊匹配算法，允许一定错误和漏识别。</p>
-
-                    <h2>动态规划的模糊匹配</h2>
-                    <p>使用编辑距离（Levenshtein 距离）将 ASR 转录结果与原文候选位置进行比对。具体做法是：对每次新的 ASR 文本（尤其是 Final 结果）在原文中滑动窗口应用动态规划匹配，计算最小编辑距离，找出最可能的对齐位置。</p>
-                    <p>例如 Lingua 系统会把 ASR 转录和脚本文本转换为音素序列，再用动态规划计算 Levenshtein 距离对齐当前识别串与候选脚本句子。通过允许插入、删除、替换操作，算法能容忍漏字、错字等识别误差，并找到误差最小的匹配路径。</p>
-                    <p>为提高效率，可限制匹配窗口大小（例如只在当前光标附近的后续 N 个字符或词范围内搜索），避免整篇长文全文比较。匹配结果可用编辑距离归一化分数评分，并设置阈值判断是否达到可信匹配。该方法在字幕校准等领域已验证，即使识别准确率较低也能找到正确位置。</p>
-
-                    <h2>基于锚点的快速匹配</h2>
-                    <p>为提升实时匹配速度，可结合精确查找与模糊匹配。做法是从 ASR 输出片段中提取若干锚点子串（例如长度较长且不含空白的连续字词），尝试在原文有效字符序列中定位这些子串。</p>
-                    <p>若找到唯一匹配位置，则可认为锚点对齐并据此推测整体位置；若存在多个候选或未找到，则退而使用编辑距离算法在局部范围内做细致匹配。这样利用精确字符串搜索（如 KMP）快速缩小候选区域，再对候选区域应用模糊匹配，可减少不必要的全局比较。</p>
-
-                    <h2>音韵与同音匹配优化</h2>
-                    <p>中文场景下 ASR 常出现同音字错误或简繁体差异。可以将文本和识别结果转换为拼音或音素序列再进行匹配，将同音错误视作匹配成功，从而提高容错。</p>
-                    <p>例如将“你好”错识别为“尼豪”时，音素级匹配仍可对齐。需要注意音素级匹配会增加计算开销，可在识别错误率高或对准确性要求极高的场景中酌情使用。</p>
-
-                    <h2>部分结果的增量匹配</h2>
-                    <p>实时 ASR 的 partial 结果不断变化，可采用增量匹配策略。每次新的 partial 文本无需从头匹配完整片段，而是利用上一次匹配位置作为起点，仅对后续新增文本做匹配。</p>
-                    <p>通常 ASR partial 是前缀逐渐扩展或仅修改尾部，因此可以假设新 partial 的大部分开头仍对齐于之前 final 确定的位置。这样既降低计算量，也避免 partial 瞬时波动导致的位置大跳变。</p>
-
-                    <h2>建议方案</h2>
-                    <p>综合来看，推荐以动态规划模糊匹配为主，实现鲁棒的文本对齐，并辅以锚点查找与增量优化提升性能。编辑距离阈值等参数需通过实验调优，以在准确率与性能之间取得平衡。</p>
-                  </body>
-                  </html>`,
+                content: "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"快速上手\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"芦笋提词器\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(126, 211, 33)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"bold\"}],\"text\":\"芦笋提词器\"},{\"type\":\"text\",\"text\":\"是一款功能强大的智能提词工具，适用于多种场景，如直播带货、录课、在线会议、视频拍摄、演讲发言等，能够帮助用户告别忘词，提升表达的流畅度和专业性，提高工作效率。\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"【\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(74, 144, 226)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"underline\"}],\"text\":\"智能跟读\"},{\"type\":\"text\",\"text\":\"】\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"芦笋提词器使用语音识别功能，在开启智能跟读后，提词进度会随着用户读稿速度动态变化，\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(248, 231, 28)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"bold\"}],\"text\":\"自动匹配语速\"},{\"type\":\"text\",\"text\":\"，演讲者读到哪里，提词内容就滚到哪里。\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"【\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(189, 16, 224)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"underline\"}],\"text\":\"隐形提词\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"】\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"在\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"录制视频\"},{\"type\":\"text\",\"text\":\"、\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"直播\"},{\"type\":\"text\",\"text\":\"、\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"录屏\"},{\"type\":\"text\",\"text\":\"或\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"会议投屏\"},{\"type\":\"text\",\"text\":\"时，提词器内容\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(126, 211, 33)\",\"backgroundColor\":\"\",\"remark\":\"\"}}],\"text\":\"仅演讲者自己可见\"},{\"type\":\"text\",\"text\":\"，其他人无法看到，录制好的视频或会议内容中不会出现提词的文字，既保护了隐私，又保证了画面的专业性。\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"【\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(241, 229, 4)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"underline\"}],\"text\":\"目录提词\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"】\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"支持手动设置提词\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"文稿目录\"},{\"type\":\"text\",\"text\":\"，在提词过程中，可以点击目录快速跳转至对应位置，让提词文稿结构更加清晰，提词器使用更加灵活。\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"【\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(245, 166, 35)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"bold\"},{\"type\":\"underline\"}],\"text\":\"悬浮提词\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"】\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"支持将提词内容\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(248, 231, 28)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"bold\"}],\"text\":\"悬浮\"},{\"type\":\"text\",\"text\":\"在其他应用界面上，完美解决直播、口播场景下的提词需求，并且提词窗口可设置为透明，不遮挡画面、相机内容。\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"【\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(208, 2, 27)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"bold\"},{\"type\":\"underline\"}],\"text\":\"个性化设置\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"】\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"可以方便地设置提词的\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"文字大小\"},{\"type\":\"text\",\"text\":\"、\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(65, 117, 5)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"bold\"}],\"text\":\"颜色\"},{\"type\":\"text\",\"text\":\"、\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"透明度\"},{\"type\":\"text\",\"text\":\"和\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"背景颜色\"},{\"type\":\"text\",\"text\":\"等，还能调整提词区域的大小和位置，以获得最佳的可视效果，满足用户的个性化需求。\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"【\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(126, 211, 33)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"bold\"},{\"type\":\"underline\"}],\"text\":\"多端同步\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"】\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"支持手机、电脑等\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(208, 2, 27)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"bold\"}],\"text\":\"多端词条同步\"},{\"type\":\"text\",\"text\":\"，只需登录账号，历史记录就会自动同步，无论在哪个设备上都可以方便地使用之前的提词文稿，避免了重复操作的烦恼，保证了使用的连贯性和流畅性。\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"【\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"rgb(139, 87, 42)\",\"backgroundColor\":\"\",\"remark\":\"\"}},{\"type\":\"underline\"}],\"text\":\"蓝牙遥控器\"},{\"type\":\"text\",\"text\":\"】\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"芦笋提词器蓝牙遥控器是芦笋自研开发的辅助硬件，是一款支持「\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"提词器遥控\"},{\"type\":\"text\",\"text\":\"」「\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"PPT 翻页\"},{\"type\":\"text\",\"text\":\"」「\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"直录播遥控\"},{\"type\":\"text\",\"text\":\"」的三合一蓝牙遥控器\"}]},{\"type\":\"paragraph\"},{\"type\":\"heading\",\"attrs\":{\"level\":2},\"content\":[{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"下载方式\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"「\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"电脑端\"},{\"type\":\"text\",\"text\":\"」访问官网\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"tcq.lusun.com\"},{\"type\":\"text\",\"text\":\"或百度搜索“\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"#7ed321\",\"backgroundColor\":null,\"remark\":null}},{\"type\":\"bold\"}],\"text\":\"芦笋提词器\"},{\"type\":\"text\",\"text\":\"”\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"「\"},{\"type\":\"text\",\"marks\":[{\"type\":\"bold\"}],\"text\":\"手机端\"},{\"type\":\"text\",\"text\":\"」到应用商店搜索“\"},{\"type\":\"text\",\"marks\":[{\"type\":\"textStyle\",\"attrs\":{\"color\":\"#7ed321\",\"backgroundColor\":null,\"remark\":null}},{\"type\":\"bold\"}],\"text\":\"芦笋提词器\"},{\"type\":\"text\",\"text\":\"”\"}]}]}",
               },
               preview: {
                 isPreview: false,
@@ -175,6 +145,9 @@ export const DemoPage: React.FC = () => {
                   theme: {
                     opacity: themeOpacity,
                   },
+                  referenceLine: {
+                    enabled: false,
+                  }
                 },
               },
               debug: true,
@@ -259,6 +232,9 @@ export const DemoPage: React.FC = () => {
       backgroundColor: "#000000",
       opacity: themeOpacity,
     },
+    referenceLine: {
+      enabled: true,
+    },
   });
 
   const buildFollowConfig = (): unknown => ({
@@ -272,6 +248,9 @@ export const DemoPage: React.FC = () => {
     theme: {
       opacity: themeOpacity,
     },
+    referenceLine: {
+      enabled: false
+    }
   });
 
   const enterConstant = () => {
@@ -316,11 +295,22 @@ export const DemoPage: React.FC = () => {
     setActiveMode(null);
   };
 
+  const switchMode = (targetMode: "follow" | "constant") => {
+    if (activeMode === targetMode) return;
+    const preview = getPreviewInstance();
+    if (!preview?.setConfig) return;
+    const config = targetMode === "follow" ? buildFollowConfig() : buildConstantConfig();
+    const ok = safeCall("preview.setConfig", preview.setConfig, config);
+    if (ok !== false) {
+      setActiveMode(targetMode);
+    }
+  };
+
   const patchSpeed = (next: number) => {
     setSpeed(next);
     const preview = getPreviewInstance();
     if (!preview?.patchConfig) return;
-    safeCall("preview.patchConfig", preview.patchConfig, { playback: { speed: next } });
+    safeCall("preview.patchConfig", preview.patchConfig, {playback: {speed: next}});
   };
 
   const patchThemeOpacity = (next: number) => {
@@ -328,7 +318,7 @@ export const DemoPage: React.FC = () => {
     if (!hasEntered) return;
     const preview = getPreviewInstance();
     if (!preview?.patchConfig) return;
-    safeCall("preview.patchConfig", preview.patchConfig, { theme: { opacity: next } });
+    safeCall("preview.patchConfig", preview.patchConfig, {theme: {opacity: next}});
   };
 
   const handleStart = async () => {
@@ -351,7 +341,7 @@ export const DemoPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
+    <div style={{display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden"}}>
       <div
         style={{
           padding: "10px 20px",
@@ -370,7 +360,7 @@ export const DemoPage: React.FC = () => {
         <select
           value={selectedDeviceId ?? ""}
           onChange={async (e) => await selectMicrophone(e.target.value)}
-          style={{ padding: 4, fontSize: 12, ...noDragStyle }}
+          style={{padding: 4, fontSize: 12, ...noDragStyle}}
         >
           {microphones.map((m) => (
             <option key={m.deviceId} value={m.deviceId}>
@@ -378,11 +368,11 @@ export const DemoPage: React.FC = () => {
             </option>
           ))}
         </select>
-        <button onClick={() => refreshDevices()} style={{ padding: "4px 8px", ...noDragStyle }}>
+        <button onClick={() => refreshDevices()} style={{padding: "4px 8px", ...noDragStyle}}>
           🔄
         </button>
 
-        <span style={{ fontSize: 12 }}>Speed</span>
+        <span style={{fontSize: 12}}>Speed</span>
         <input
           type="range"
           min={10}
@@ -393,20 +383,20 @@ export const DemoPage: React.FC = () => {
           disabled={!isIframeReady || !hasEntered || activeMode !== "constant"}
           style={noDragStyle}
         />
-        <span style={{ fontSize: 12, width: 60 }}>{speed}px/s</span>
+        <span style={{fontSize: 12, width: 60}}>{speed}px/s</span>
 
-        <span style={{ fontSize: 12 }}>Countdown</span>
+        <span style={{fontSize: 12}}>Countdown</span>
         <input
           type="number"
           min={0}
           max={10}
           value={countdownSec}
           onChange={(e) => setCountdownSec(Number(e.target.value))}
-          style={{ width: 56, padding: 4, fontSize: 12, ...noDragStyle }}
+          style={{width: 56, padding: 4, fontSize: 12, ...noDragStyle}}
           disabled={!isIframeReady || hasEntered}
         />
 
-        <span style={{ fontSize: 12, fontWeight: 600 }}>跟读</span>
+        <span style={{fontSize: 12, fontWeight: 600}}>跟读</span>
         <button onClick={enterFollow} disabled={!isIframeReady || hasEntered} style={noDragStyle}>
           Enter
         </button>
@@ -439,7 +429,7 @@ export const DemoPage: React.FC = () => {
           Exit
         </button>
 
-        <span style={{ fontSize: 12, fontWeight: 600 }}>匀速</span>
+        <span style={{fontSize: 12, fontWeight: 600}}>匀速</span>
         <button onClick={enterConstant} disabled={!isIframeReady || hasEntered} style={noDragStyle}>
           Enter
         </button>
@@ -472,15 +462,15 @@ export const DemoPage: React.FC = () => {
           Exit
         </button>
 
-        <div style={{ flex: 1 }} />
+        <div style={{flex: 1}}/>
 
-        <span style={{ fontSize: 12, color: isConnected ? "green" : "red" }}>
+        <span style={{fontSize: 12, color: isConnected ? "green" : "red"}}>
           {isConnected ? "● Connected" : "○ Disconnected"}
         </span>
-        <span style={{ fontSize: 12, color: isIframeReady ? "green" : "gray" }}>
+        <span style={{fontSize: 12, color: isIframeReady ? "green" : "gray"}}>
           {isIframeReady ? "● iFrame Ready" : `○ iFrame: ${iframeStatus}`}
         </span>
-        <span style={{ fontSize: 12 }}>
+        <span style={{fontSize: 12}}>
           Opacity: <b>{windowOpacity === null ? "--" : windowOpacity.toFixed(2)}</b>
         </span>
         <input
@@ -490,9 +480,9 @@ export const DemoPage: React.FC = () => {
           step={1}
           value={Math.round((windowOpacity ?? 1) * 100)}
           onChange={(e) => patchWindowOpacity(Number(e.target.value) / 100)}
-          style={{ width: 120, ...noDragStyle }}
+          style={{width: 120, ...noDragStyle}}
         />
-        <span style={{ fontSize: 12 }}>
+        <span style={{fontSize: 12}}>
           Theme Opacity: <b>{themeOpacity.toFixed(2)}</b>
         </span>
         <input
@@ -503,14 +493,33 @@ export const DemoPage: React.FC = () => {
           value={Math.round(themeOpacity * 100)}
           onChange={(e) => patchThemeOpacity(Number(e.target.value) / 100)}
           disabled={!isIframeReady}
-          style={{ width: 120, ...noDragStyle }}
+          style={{width: 120, ...noDragStyle}}
         />
-        <span style={{ fontSize: 12 }}>
+        <span style={{fontSize: 12}}>
           Preview: <b>{playbackState}</b>
           {playbackState === "countdown" && typeof previewState?.countdownLeftSec === "number"
             ? ` (${previewState.countdownLeftSec}s)`
             : null}
         </span>
+
+        {hasEntered && (
+          <button
+            onClick={() => switchMode(activeMode === "follow" ? "constant" : "follow")}
+            disabled={!isIframeReady}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: activeMode === "follow" ? "#007bff" : "#6c757d",
+              color: "white",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontSize: 12,
+              ...noDragStyle,
+            }}
+          >
+            {activeMode === "follow" ? "跟读模式" : "匀速模式"} (点击切换)
+          </button>
+        )}
 
         {!isRecognizing ? (
           <button
@@ -545,11 +554,11 @@ export const DemoPage: React.FC = () => {
         )}
       </div>
 
-      <div style={{ flex: 1, overflow: "hidden", background: "transparent" }}>
+      <div style={{flex: 1, overflow: "hidden", background: "transparent"}}>
         <iframe
           ref={iframeRef}
-          src="http://localhost:5174/editor/1.1.0-dev.6/"
-          style={{ width: "100%", height: "100%", border: "none" }}
+          src="http://localhost:6111/editor/1.1.0-dev.10"
+          style={{width: "100%", height: "100%", border: "none"}}
           onLoad={() => {
             setHasEntered(false);
             setActiveMode(null);
@@ -570,7 +579,7 @@ export const DemoPage: React.FC = () => {
         <span>进度: {previewState ? Math.round(((previewState.progress as number | undefined) ?? 0) * 100) : 0}%</span>
         <span>偏移: {(previewState?.textOffset as number | undefined) ?? 0}</span>
         <span>片段: {(previewState?.segmentIndex as number | undefined) ?? 0}</span>
-        <span style={{ flex: 1, textAlign: "right", color: "#666" }}>{asrEvent?.text || "等待输入..."}</span>
+        <span style={{flex: 1, textAlign: "right", color: "#666"}}>{asrEvent?.text || "等待输入..."}</span>
       </div>
 
       {error && (
