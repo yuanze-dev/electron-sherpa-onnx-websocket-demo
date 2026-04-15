@@ -5,7 +5,7 @@
   "description": "An Electron app demo for sherpa-onnx",
   "main": ".vite/build/main.js",
   "scripts": {
-    "start": "electron-forge start -- --disable-web-security --disable-features=VizDisplayCompositor --allow-running-insecure-content",
+    "dev": "electron-forge start -- --disable-web-security --disable-features=VizDisplayCompositor --allow-running-insecure-content",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",

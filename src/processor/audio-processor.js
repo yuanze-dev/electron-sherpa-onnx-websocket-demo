@@ -13,8 +13,8 @@ class AudioProcessor extends AudioWorkletProcessor {
 
     // Copy input to output for monitoring (optional)
     if (output.length > 0 && input.length > 0) {
-      output[0].set(input[0]);
-      output?.[1].set(input[0]);
+      // output[0].set(input[0]);
+      // output?.[1].set(input[0]);
     }
 
     if (input.length > 0) {

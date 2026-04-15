@@ -137,7 +137,9 @@ export const useOnnxServer = ({
             const asrEvent = {
               text: data.text || "",
               tokens: data.tokens || (data.text ? Array.from(data.text) : []),
-              timestamps: data.timestamps || (data.text ? Array.from(data.text).map((_, i) => i * 0.1) : []),
+              timestamps:
+                data.timestamps ||
+                (data.text ? Array.from(data.text).map((_, i) => i * 0.1) : []),
               type: data.type || "partial",
             };
 
@@ -147,13 +149,14 @@ export const useOnnxServer = ({
               asrEvent: asrEvent,
             }));
 
-            console.log("[ONNX] Recognition Result ->", {
-              text: asrEvent.text,
-              type: asrEvent.type,
-              tokens: asrEvent.tokens.length,
-              hasTimestamps: asrEvent.timestamps.length > 0
-            });
-
+            if (asrEvent.text !== "") {
+              console.debug("[ONNX] Recognition Result ->", {
+                text: asrEvent.text,
+                tokens: asrEvent.tokens,
+                timestamps: asrEvent.timestamps,
+                type: asrEvent.type,
+              });
+            }
           } catch (e) {
             // If not JSON, treat as plain text
             const asrEvent = {
@@ -169,13 +172,13 @@ export const useOnnxServer = ({
               asrEvent: asrEvent,
             }));
 
-            console.log("[ONNX] Recognition Result (plain text) ->", {
+            console.debug("[ONNX] Recognition Result (plain text) ->", {
               text: message,
-              type: "partial"
+              type: "partial",
             });
           }
         } else {
-          console.log("[ONNX] ✅ Recognition complete");
+          console.debug("[ONNX] ✅ Recognition complete");
         }
       };
 
@@ -249,7 +252,7 @@ export const useOnnxServer = ({
 
         console.log(
           "sampleRate",
-          stream.getAudioTracks()[0].getSettings().sampleRate
+          stream.getAudioTracks()[0].getSettings().sampleRate,
         );
 
         const audioContext = new AudioContext({ sampleRate: 16000 });
@@ -260,17 +263,17 @@ export const useOnnxServer = ({
 
         const workletNode = new AudioWorkletNode(
           audioContext,
-          "audio-processor"
+          "audio-processor",
         );
 
         // Listen for audio data from the worklet
         workletNode.port.onmessage = (event) => {
-          if (event.data.type === "audioData" &&
-              websocketRef.current?.readyState === WebSocket.OPEN) {
+          if (
+            event.data.type === "audioData" &&
+            websocketRef.current?.readyState === WebSocket.OPEN
+          ) {
             const audioData = event.data.data;
             websocketRef.current.send(audioData.buffer);
-            // Optional: Very verbose, uncomment if needed
-            // console.log("[ONNX] ⚡ Audio data sent to server");
           }
         };
 
@@ -294,7 +297,7 @@ export const useOnnxServer = ({
         console.error("Microphone access error:", error);
       }
     },
-    [state.selectedDeviceId]
+    [state.selectedDeviceId],
   );
 
   const stopRecognition = useCallback(() => {
@@ -345,7 +348,7 @@ export const useOnnxServer = ({
         await startRecognition(deviceId);
       }
     },
-    [startRecognition]
+    [startRecognition],
   );
 
   const clearResults = useCallback(() => {

@@ -12,6 +12,17 @@ type PacificPreviewState = {
   [k: string]: unknown;
 };
 
+type FollowMatchMode = "strict" | "normal" | "loose";
+
+const FOLLOW_MATCH_MODE_OPTIONS: Array<{
+  value: FollowMatchMode;
+  label: string;
+}> = [
+  {value: "strict", label: "strict"},
+  {value: "normal", label: "normal"},
+  {value: "loose", label: "loose"},
+];
+
 type PacificPreviewInstance = {
   enter?: (config: unknown) => unknown;
   start?: () => unknown;
@@ -20,6 +31,7 @@ type PacificPreviewInstance = {
   exit?: () => unknown;
   patchConfig?: (patch: unknown) => unknown;
   setConfig?: (config: unknown) => boolean;
+  setDebugMode?: (enabled: boolean) => unknown;
   onStateChange?: (cb: (state: PacificPreviewState) => void) => unknown;
   onError?: (cb: (err: unknown) => void) => unknown;
   feedASR?: (asrEvent: unknown) => unknown;
@@ -63,6 +75,8 @@ export const DemoPage: React.FC = () => {
   const [themeOpacity, setThemeOpacity] = useState<number>(0.7);
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [activeMode, setActiveMode] = useState<"follow" | "constant" | null>(null);
+  const [followMatchMode, setFollowMatchMode] = useState<FollowMatchMode>("normal");
+  const [trackingDebugEnabled, setTrackingDebugEnabled] = useState<boolean>(false);
   const [windowOpacity, setWindowOpacity] = useState<number | null>(null);
 
   const isIframeReady = iframeStatus === "preview_ready";
@@ -196,6 +210,13 @@ export const DemoPage: React.FC = () => {
     fetchOpacity();
   }, []);
 
+  useEffect(() => {
+    if (!isIframeReady) return;
+    const preview = getPreviewInstance();
+    if (!preview?.setDebugMode) return;
+    safeCall("preview.setDebugMode", preview.setDebugMode, trackingDebugEnabled);
+  }, [getPreviewInstance, isIframeReady, trackingDebugEnabled]);
+
   const patchWindowOpacity = async (next: number) => {
     setWindowOpacity(next);
     if (!window.electronAPI?.setWindowOpacity) return;
@@ -244,14 +265,27 @@ export const DemoPage: React.FC = () => {
       countdownSec,
       loop: false,
       smartPause: false,
+      phoneticFuzzyMode: followMatchMode,
     },
     theme: {
       opacity: themeOpacity,
     },
     referenceLine: {
-      enabled: false
+      enabled: true
     }
   });
+
+  const patchFollowMatchMode = (next: FollowMatchMode) => {
+    setFollowMatchMode(next);
+    if (!hasEntered || activeMode !== "follow") return;
+    const preview = getPreviewInstance();
+    if (!preview?.patchConfig) return;
+    safeCall("preview.patchConfig", preview.patchConfig, {
+      playback: {
+        phoneticFuzzyMode: next,
+      },
+    });
+  };
 
   const enterConstant = () => {
     const preview = getPreviewInstance();
@@ -304,6 +338,10 @@ export const DemoPage: React.FC = () => {
     if (ok !== false) {
       setActiveMode(targetMode);
     }
+  };
+
+  const toggleTrackingDebug = () => {
+    setTrackingDebugEnabled((prev) => !prev);
   };
 
   const patchSpeed = (next: number) => {
@@ -396,7 +434,37 @@ export const DemoPage: React.FC = () => {
           disabled={!isIframeReady || hasEntered}
         />
 
+        <span style={{fontSize: 12}}>匹配严格度</span>
+        <select
+          value={followMatchMode}
+          onChange={(e) => patchFollowMatchMode(e.target.value as FollowMatchMode)}
+          style={{padding: 4, fontSize: 12, ...noDragStyle}}
+          disabled={!isIframeReady}
+        >
+          {FOLLOW_MATCH_MODE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
         <span style={{fontSize: 12, fontWeight: 600}}>跟读</span>
+        <button
+          onClick={toggleTrackingDebug}
+          disabled={!isIframeReady}
+          style={{
+            padding: "4px 10px",
+            backgroundColor: trackingDebugEnabled ? "#d97706" : "#4b5563",
+            color: "white",
+            border: "none",
+            borderRadius: 4,
+            cursor: "pointer",
+            fontSize: 12,
+            ...noDragStyle,
+          }}
+        >
+          Tracking Debug: {trackingDebugEnabled ? "ON" : "OFF"}
+        </button>
         <button onClick={enterFollow} disabled={!isIframeReady || hasEntered} style={noDragStyle}>
           Enter
         </button>
@@ -557,7 +625,7 @@ export const DemoPage: React.FC = () => {
       <div style={{flex: 1, overflow: "hidden", background: "transparent"}}>
         <iframe
           ref={iframeRef}
-          src="http://localhost:6111/editor/1.1.0-dev.10"
+          src="http://localhost:6111/editor/1.1.0-dev.12"
           style={{width: "100%", height: "100%", border: "none"}}
           onLoad={() => {
             setHasEntered(false);
